@@ -54,7 +54,7 @@ modelGrid.addEventListener('click',event=>{const card=event.target.closest('.mod
 document.querySelectorAll('.category-grid article').forEach(item=>item.addEventListener('click',()=>notify(`Showing ${item.innerText.replace(/\n/g,' ')}.`)));
 async function loadProducts() {
     try {
-        const response = await fetch('http://localhost:3000/api/products');
+        const response = await fetch('/api/products');
         const data = await response.json();
         const productList = document.getElementById('product-list');
         if (data.success && data.data.length > 0) {
@@ -198,16 +198,32 @@ function updatePaymentFields() {
 }
 paymentMethodInputs.forEach(input => input.addEventListener('change', updatePaymentFields));
 updatePaymentFields();
-paymentForm.addEventListener('submit', event => {
+paymentForm.addEventListener('submit', async event => {
     event.preventDefault();
     const button = document.querySelector('#pay-now'), method = document.querySelector('input[name="payment-method"]:checked').value;
-    const customerName = document.querySelector('#delivery-name').value.trim(), phone = document.querySelector('#delivery-phone').value.trim();
-    const orderNumber = `DAP${Date.now().toString().slice(-6)}`;
+    const customerName = document.querySelector('#delivery-name').value.trim(), customerEmail = document.querySelector('#delivery-email').value.trim(), phone = document.querySelector('#delivery-phone').value.trim();
     button.disabled = true; button.textContent = method === 'cod' ? 'Placing order…' : 'Processing payment…';
-    if (document.querySelector('#whatsapp-confirmation').checked) {
-        const message = `Dey Auto Parts order ${orderNumber}%0AName: ${encodeURIComponent(customerName)}%0ATotal: ${encodeURIComponent(rupees(cartSum()))}%0APayment: ${encodeURIComponent(method === 'cod' ? 'Cash on Delivery' : method.toUpperCase())}%0ADelivery phone: ${encodeURIComponent(phone)}`;
-        window.open(`https://wa.me/918373008821?text=${message}`, '_blank', 'noopener');
+    try {
+        const response = await fetch(`${api}/checkout`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customerName, customerEmail, paymentMethod: method, items: cartItemsState.map(item => ({ partId: item.partId, quantity: item.quantity })) }) });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.success) throw new Error(result.message || 'Could not place your order.');
+        const orderNumber = `DAP-${result.orderId}`;
+        if (document.querySelector('#whatsapp-confirmation').checked) {
+            const message = `Dey Auto Parts order ${orderNumber}%0AName: ${encodeURIComponent(customerName)}%0ATotal: ${encodeURIComponent(rupees(result.total))}%0APayment: ${encodeURIComponent(method === 'cod' ? 'Cash on Delivery' : method.toUpperCase())}%0ADelivery phone: ${encodeURIComponent(phone)}`;
+            window.open(`https://wa.me/918373008821?text=${message}`, '_blank', 'noopener');
+        }
+        document.querySelector('#receipt-details').textContent = `Order ${orderNumber} has been placed for ${rupees(result.total)}. Keep this receipt for your records.`;
+        document.querySelector('#receipt-download').dataset.receipt = `DEY AUTO PARTS\nOrder: ${orderNumber}\nCustomer: ${customerName}\nEmail: ${customerEmail}\nPhone: ${phone}\nPayment: ${method === 'cod' ? 'Cash on Delivery' : method.toUpperCase()}\nTotal: ${rupees(result.total)}\nStatus: Placed`;
+        cartItemsState = []; saveCart(); paymentModal.hidden = true; document.querySelector('#receipt-modal').hidden = false; notify(`Order ${orderNumber} placed successfully!`);
+    } catch (error) {
+        notify(error.message || 'Could not place your order. Please try again.');
+    } finally {
+        button.disabled = false; updatePaymentFields();
     }
-    setTimeout(() => { cartItemsState = []; saveCart(); paymentModal.hidden = true; button.disabled = false; updatePaymentFields(); notify(`Order ${orderNumber} placed successfully!`); }, 700);
+});
+document.querySelector('.receipt-close').addEventListener('click', () => document.querySelector('#receipt-modal').hidden = true);
+document.querySelector('#receipt-download').addEventListener('click', event => {
+    const blob = new Blob([event.currentTarget.dataset.receipt || ''], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'dey-auto-order-receipt.txt'; link.click(); URL.revokeObjectURL(link.href);
 });
 renderCart();

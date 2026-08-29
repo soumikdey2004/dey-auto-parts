@@ -43,11 +43,13 @@ CREATE TABLE IF NOT EXISTS orders (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   customer_name VARCHAR(120) NOT NULL,
   customer_email VARCHAR(255) NOT NULL,
-  payment_method ENUM('upi','card','netbanking') NOT NULL,
+  payment_method ENUM('upi','card','cod','netbanking') NOT NULL,
   total_amount DECIMAL(10,2) NOT NULL,
   status ENUM('placed','paid','cancelled') NOT NULL DEFAULT 'placed',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+-- Apply this when upgrading an existing database created before COD support.
+ALTER TABLE orders MODIFY payment_method ENUM('upi','card','cod','netbanking') NOT NULL;
 
 CREATE TABLE IF NOT EXISTS order_items (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
