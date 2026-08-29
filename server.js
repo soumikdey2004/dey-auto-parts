@@ -10,15 +10,17 @@ app.use(express.static('public'));
 
 // MySQL ডেটাবেস কানেকশন
 // MySQL ডেটাবেস কানেকশন
+// Cloud Database Connection
 const db = mysql.createPool({
-    host: 'localhost',
-    user: 'root',
-    password: 'Dey@200421',
-    database: 'dey_auto_parts',
+    host: 'bsfk9p7hei6qlzesnwv2-mysql.services.clever-cloud.com',
+    user: 'ux1nro8g4ql6rvs9',
+    password: 'qLEjAMVDT199lXNkihg6', 
+    database: 'bsfk9p7hei6qlzesnwv2',
+    port: 3306,
     waitForConnections: true,
-    connectionLimit: 10
+    connectionLimit: 10,
+    queueLimit: 0
 });
-
 // ডেটাবেস কানেকশন ঠিক আছে কি না তা চেক করা
 db.getConnection((err, connection) => {
     if (err) {
