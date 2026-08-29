@@ -11,7 +11,7 @@ document.querySelector('#login-stage').addEventListener('submit', async (event) 
     const email = document.querySelector('input[type="email"]').value;
     const password = document.querySelector('input[type="password"]').value;
     try {
-        const response = await fetch('http://localhost:3000/api/auth', {
+        const response = await fetch('/api/auth', {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, password })
         });
         const data = await response.json();
